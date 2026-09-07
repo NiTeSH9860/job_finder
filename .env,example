@@ -1,0 +1,16 @@
+# Choose ONE model provider and fill in its credentials.
+# Strands is model-agnostic — see https://strandsagents.com for provider setup.
+
+# Amazon Bedrock (default provider) — needs AWS credentials configured via
+# `aws configure` or environment variables, plus model access enabled.
+AWS_REGION=us-west-2
+
+# OR: Anthropic
+# ANTHROPIC_API_KEY=
+
+# OR: Google Gemini
+# GOOGLE_API_KEY=
+
+# Job board API — sign up free at https://developer.adzuna.com/
+ADZUNA_APP_ID=
+ADZUNA_APP_KEY=
