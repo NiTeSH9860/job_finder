@@ -4,3 +4,4 @@ python-dotenv
 requests
 sentence-transformers
 numpy
+google-genai
