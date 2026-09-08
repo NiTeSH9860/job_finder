@@ -7,13 +7,14 @@ resume-job-matcher project this agent builds on.
 Deterministic and cheap (no LLM call per posting), which matters once
 the agent is scoring dozens of postings per run.
 
-Model loads once at import time and is reused across calls.
+The sentence-transformers/PyTorch import is deferred to first use (see
+_get_model) so this module can be imported — and its pure logic tested —
+without paying the cost of loading the ML stack every time.
 """
 
 from functools import lru_cache
 
 import numpy as np
-from sentence_transformers import SentenceTransformer
 from strands import tool
 
 _MODEL_NAME = "all-MiniLM-L6-v2"
@@ -26,12 +27,22 @@ BORDERLINE_THRESHOLD = 0.40
 
 
 @lru_cache(maxsize=1)
-def _get_model() -> SentenceTransformer:
+def _get_model():
+    from sentence_transformers import SentenceTransformer  # deferred: heavy import
+
     return SentenceTransformer(_MODEL_NAME)
 
 
 def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+
+def _verdict_for_similarity(similarity: float) -> str:
+    if similarity >= STRONG_THRESHOLD:
+        return "strong"
+    if similarity >= BORDERLINE_THRESHOLD:
+        return "borderline"
+    return "poor"
 
 
 def _overlapping_terms(posting_description: str, resume_summary: str, top_n: int = 5) -> list[str]:
@@ -63,13 +74,7 @@ def score_fit(posting_description: str, resume_summary: str) -> dict:
     posting_vec, resume_vec = model.encode([posting_description, resume_summary])
     similarity = _cosine_similarity(posting_vec, resume_vec)
     score = round(max(0.0, min(1.0, similarity)) * 100)
-
-    if similarity >= STRONG_THRESHOLD:
-        verdict = "strong"
-    elif similarity >= BORDERLINE_THRESHOLD:
-        verdict = "borderline"
-    else:
-        verdict = "poor"
+    verdict = _verdict_for_similarity(similarity)
 
     overlap = _overlapping_terms(posting_description, resume_summary)
     rationale = (
