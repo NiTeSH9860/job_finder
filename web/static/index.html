@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Job Application Agent</title>
+<style>
+  :root {
+    --bg: #12161b;
+    --panel: #1b2027;
+    --panel-quiet: #171b21;
+    --border: #2a313a;
+    --text: #e6e9ec;
+    --text-muted: #7c868f;
+    --attention: #e0a72e;
+    --attention-dim: #4a3c1f;
+    --quiet-accent: #4fa490;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "IBM Plex Sans", system-ui, sans-serif;
+    line-height: 1.5;
+  }
+
+  header {
+    padding: 32px 40px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 60ch;
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(320px, 420px) 1fr;
+    gap: 24px;
+    padding: 24px 40px 48px;
+    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .panel h2 {
+    margin: 0 0 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 14px 0 5px;
+  }
+
+  label:first-of-type { margin-top: 0; }
+
+  input, textarea {
+    width: 100%;
+    background: var(--panel-quiet);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 9px 10px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+  }
+
+  input:focus, textarea:focus, button:focus-visible {
+    outline: 2px solid var(--quiet-accent);
+    outline-offset: 1px;
+  }
+
+  button {
+    margin-top: 18px;
+    width: 100%;
+    background: var(--quiet-accent);
+    color: #0d1a17;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+
+  .log {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  .log-entry {
+    padding: 10px 12px;
+    background: var(--panel-quiet);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    white-space: pre-wrap;
+  }
+
+  .log-entry time {
+    display: block;
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .log-empty, .review-empty {
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 8px 2px;
+  }
+
+  .review-panel {
+    border-color: var(--border);
+  }
+
+  .review-panel.has-items {
+    border-left: 3px solid var(--attention);
+  }
+
+  .review-item {
+    background: var(--panel-quiet);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .review-item:last-child { margin-bottom: 0; }
+
+  .review-item .posting-id {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .review-item .reason {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .review-item time {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Job Application Agent</h1>
+  <p>Runs the search in the background. Strong fits get drafted automatically — anything borderline waits here for you.</p>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Run the agent</h2>
+    <form id="run-form">
+      <label for="resume">Resume summary</label>
+      <textarea id="resume" rows="4" required placeholder="Entry-level data scientist, Python, scikit-learn, LLM/RAG projects."></textarea>
+
+      <label for="roles">Target roles (comma-separated)</label>
+      <input id="roles" type="text" required placeholder="Data Scientist, Data Analyst" />
+
+      <label for="locations">Locations (comma-separated)</label>
+      <input id="locations" type="text" required placeholder="Remote, Kathmandu" />
+
+      <button type="submit" id="run-btn">Run agent now</button>
+    </form>
+  </section>
+
+  <div class="stack">
+    <section class="panel review-panel" id="review-panel">
+      <h2>Needs your call</h2>
+      <div id="review-list"><p class="review-empty">Nothing waiting on you right now.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2>Activity</h2>
+      <div class="log" id="log">
+        <p class="log-empty">No runs yet. Fill in the form and run the agent to see it work.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+  const form = document.getElementById('run-form');
+  const runBtn = document.getElementById('run-btn');
+  const log = document.getElementById('log');
+  const reviewList = document.getElementById('review-list');
+  const reviewPanel = document.getElementById('review-panel');
+
+  function addLogEntry(text) {
+    const empty = log.querySelector('.log-empty');
+    if (empty) empty.remove();
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    const time = document.createElement('time');
+    time.textContent = new Date().toLocaleTimeString();
+    entry.appendChild(time);
+    entry.appendChild(document.createTextNode(text));
+    log.prepend(entry);
+  }
+
+  async function refreshReviews() {
+    try {
+      const res = await fetch('/api/reviews');
+      const data = await res.json();
+      const pending = data.pending || [];
+      if (pending.length === 0) {
+        reviewPanel.classList.remove('has-items');
+        reviewList.innerHTML = '<p class="review-empty">Nothing waiting on you right now.</p>';
+        return;
+      }
+      reviewPanel.classList.add('has-items');
+      reviewList.innerHTML = '';
+      for (const item of pending) {
+        const div = document.createElement('div');
+        div.className = 'review-item';
+        div.innerHTML = `
+          <div class="posting-id">${item.posting_id}</div>
+          <div class="reason">${item.reason}</div>
+          <time>${new Date(item.flagged_at).toLocaleString()}</time>
+        `;
+        reviewList.appendChild(div);
+      }
+    } catch (err) {
+      addLogEntry('Could not reach the review queue: ' + err.message);
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    runBtn.disabled = true;
+    runBtn.textContent = 'Running…';
+
+    const payload = {
+      resume_summary: document.getElementById('resume').value,
+      target_roles: document.getElementById('roles').value.split(',').map(s => s.trim()).filter(Boolean),
+      locations: document.getElementById('locations').value.split(',').map(s => s.trim()).filter(Boolean),
+    };
+
+    try {
+      const res = await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      addLogEntry(data.result || JSON.stringify(data));
+      await refreshReviews();
+    } catch (err) {
+      addLogEntry('Run failed: ' + err.message);
+    } finally {
+      runBtn.disabled = false;
+      runBtn.textContent = 'Run agent now';
+    }
+  });
+
+  refreshReviews();
+</script>
+
+</body>
+</html>
