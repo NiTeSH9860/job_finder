@@ -5,3 +5,4 @@ requests
 sentence-transformers
 numpy
 google-genai
+bedrock-agentcore
